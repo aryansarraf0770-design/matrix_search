@@ -1,4 +1,3 @@
-Now I have a thorough understanding of the entire file. Here's a complete description of all the features:
 
 ---
 
