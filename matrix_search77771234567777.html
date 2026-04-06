@@ -1,0 +1,1627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matrix Search Engine</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #000;
+            color: #00FF41;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Digital Rain Background */
+        .digital-rain {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 0;
+        }
+
+        .digital-rain.active {
+            opacity: 0.15;
+        }
+
+        .rain-char {
+            position: absolute;
+            font-family: 'Courier New', monospace;
+            color: #00FF41;
+            font-weight: bold;
+            font-size: 14px;
+            animation: fall linear infinite;
+            text-shadow: 0 0 5px #00FF41, 0 0 10px #00FF41, 0 0 20px #00FF41, 0 0 30px #00FF41, 0 0 40px #00FF41;
+            opacity: 1;
+        }
+
+        @keyframes fall {
+            0% {
+                transform: translateY(-100%);
+            }
+            100% {
+                transform: translateY(100vh);
+            }
+        }
+
+        /* Header */
+        header {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 30px;
+            background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), transparent);
+            z-index: 100;
+        }
+
+        header a {
+            color: #00FF41;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: opacity 0.3s ease;
+            cursor: pointer;
+        }
+
+        header a:hover {
+            opacity: 0.7;
+        }
+
+        .profile-icon {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: #00FF41;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #000;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .profile-icon:hover {
+            transform: scale(1.1);
+        }
+
+        /* Main Container */
+        main {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* p5.js Canvas Container */
+        #p5-container {
+            margin-bottom: 40px;
+            display: flex;
+            justify-content: center;
+        }
+
+        #p5-container canvas {
+            max-width: 100%;
+            height: auto;
+        }
+
+        /* Search Container */
+        .search-container {
+            width: 100%;
+            max-width: 600px;
+            margin-bottom: 20px;
+        }
+
+        .search-bar {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 12px 20px;
+            background-color: rgba(0, 20, 0, 0.7);
+            border: 2px solid #00FF41;
+            border-radius: 50px;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.2);
+        }
+
+        .search-bar:focus-within {
+            box-shadow: 0 0 30px rgba(0, 255, 65, 0.5);
+            border-color: #00FF41;
+        }
+
+        .search-icon {
+            color: #00FF41;
+            font-size: 18px;
+        }
+
+        .search-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #00FF41;
+            font-size: 16px;
+            outline: none;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        .search-input::placeholder {
+            color: #00661a;
+        }
+
+        .microphone-icon {
+            color: #00FF41;
+            cursor: pointer;
+            font-size: 18px;
+            transition: opacity 0.3s ease;
+        }
+
+        .microphone-icon:hover {
+            opacity: 0.7;
+        }
+
+        /* Buttons Container */
+        .buttons-container {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: 1px solid #00FF41;
+            background-color: transparent;
+            color: #00FF41;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        .btn:hover {
+            background-color: #00FF41;
+            color: #000;
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        /* 3D Sphere Container */
+        #sphere-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 99;
+        }
+
+        #sphere-container canvas {
+            display: block;
+        }
+
+        .sphere-credit {
+            position: fixed;
+            bottom: 25px;
+            right: 110px;
+            color: #00FF41;
+            font-size: 11px;
+            font-family: 'Courier New', monospace;
+            opacity: 0.7;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+
+        /* Loading Screen */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .loading-screen.active {
+            display: flex;
+        }
+
+        .loading-numbers {
+            font-size: 80px;
+            font-family: 'Courier New', monospace;
+            color: #00FF41;
+            font-weight: bold;
+            text-shadow: 0 0 20px #00FF41;
+            min-width: 150px;
+            text-align: center;
+            animation: loadingPulse 0.3s ease-in-out;
+        }
+
+        @keyframes loadingPulse {
+            0% {
+                transform: scale(0.5);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(1.2);
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        @keyframes glitch {
+            0%, 100% {
+                transform: translate(0);
+            }
+            20% {
+                transform: translate(-2px, 2px);
+            }
+            40% {
+                transform: translate(-2px, -2px);
+            }
+            60% {
+                transform: translate(2px, 2px);
+            }
+            80% {
+                transform: translate(2px, -2px);
+            }
+        }
+
+        @keyframes errorBlink {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.4;
+            }
+        }
+
+        .loading-numbers.glitchy {
+            animation: glitch 0.1s ease-in-out;
+        }
+
+        .loading-text {
+            font-size: 16px;
+            color: #00FF41;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 2px;
+            opacity: 0.7;
+        }
+
+        /* Confetti */
+        .confetti {
+            position: fixed;
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        @keyframes confettiFall {
+            0% {
+                transform: translateY(0) rotate(0);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+
+        /* Genie Styling */
+        .genie {
+            position: fixed;
+            z-index: 1100;
+            pointer-events: none;
+        }
+
+        .genie-body {
+            width: 150px;
+            height: 150px;
+            border-radius: 50% 50% 45% 45%;
+            background: linear-gradient(135deg, rgba(100, 100, 255, 0.9), rgba(150, 150, 255, 0.9));
+            box-shadow: 0 0 30px rgba(100, 100, 255, 0.6), inset -20px -20px 60px rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: visible;
+        }
+
+        .genie-body.red-theme {
+            background: linear-gradient(135deg, rgba(255, 100, 100, 0.9), rgba(255, 150, 150, 0.9));
+            box-shadow: 0 0 30px rgba(255, 100, 100, 0.6), inset -20px -20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .genie-body.blue-theme {
+            background: linear-gradient(135deg, rgba(100, 100, 255, 0.9), rgba(150, 150, 255, 0.9));
+            box-shadow: 0 0 30px rgba(100, 100, 255, 0.6), inset -20px -20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .genie-body.yellow-theme {
+            background: linear-gradient(135deg, rgba(255, 255, 100, 0.9), rgba(255, 200, 100, 0.9));
+            box-shadow: 0 0 30px rgba(255, 255, 100, 0.6), inset -20px -20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .genie-eyes {
+            position: absolute;
+            top: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 30px;
+        }
+
+        .genie-eye {
+            width: 15px;
+            height: 15px;
+            background: white;
+            border-radius: 50%;
+            position: relative;
+        }
+
+        .genie-pupil {
+            width: 8px;
+            height: 8px;
+            background: #000;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .genie-mouth {
+            position: absolute;
+            bottom: 35px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 30px;
+            height: 15px;
+            border: 2px solid white;
+            border-top: none;
+            border-radius: 0 0 30px 30px;
+        }
+
+        .genie-text {
+            position: absolute;
+            top: -80px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 24px;
+            color: #FFD700;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            white-space: nowrap;
+            text-shadow: 0 0 10px #FFD700;
+            opacity: 0;
+        }
+
+        .genie.show-text .genie-text {
+            animation: genieTextFade 2s ease-in-out forwards;
+        }
+
+        @keyframes genieTextFade {
+            0% {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-20px);
+            }
+            50% {
+                opacity: 1;
+            }
+            100% {
+                opacity: 0;
+                transform: translateX(-50%) translateY(20px);
+            }
+        }
+
+        @keyframes genieAppear {
+            0% {
+                opacity: 0;
+                transform: scale(0);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        @keyframes genieSmall {
+            0% {
+                width: 150px;
+                height: 150px;
+                opacity: 1;
+            }
+            100% {
+                width: 50px;
+                height: 50px;
+                opacity: 0.7;
+            }
+        }
+
+        .genie.appearing .genie-body {
+            animation: genieAppear 0.5s ease-out forwards;
+        }
+
+        .genie.shrinking .genie-body {
+            animation: genieSmall 0.8s ease-in forwards;
+        }
+
+        .genie.corner {
+            bottom: 100px;
+            right: 30px;
+        }
+
+        .genie.corner .genie-body {
+            width: 50px;
+            height: 50px;
+        }
+
+        .genie.corner .genie-eyes {
+            top: 12px;
+            gap: 12px;
+        }
+
+        .genie.corner .genie-eye {
+            width: 6px;
+            height: 6px;
+        }
+
+        .genie.corner .genie-pupil {
+            width: 3px;
+            height: 3px;
+        }
+
+        .genie.corner .genie-mouth {
+            bottom: 12px;
+            width: 12px;
+            height: 6px;
+            border-width: 1px;
+        }
+
+        /* Terminal */
+        .terminal {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 0;
+            background-color: rgba(0, 0, 0, 0.95);
+            border-top: 2px solid #00FF41;
+            overflow: hidden;
+            transition: height 0.4s ease;
+            z-index: 200;
+            font-family: 'Courier New', monospace;
+            color: #00FF41;
+            padding: 0;
+        }
+
+        .terminal.active {
+            height: 150px;
+            padding: 15px 20px;
+            overflow-y: auto;
+        }
+
+        .terminal-content {
+            font-size: 12px;
+            line-height: 1.6;
+            letter-spacing: 0.5px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .terminal-line {
+            opacity: 0;
+            animation: terminalTyping 0.05s ease-in-out forwards;
+        }
+
+        @keyframes terminalTyping {
+            0% {
+                opacity: 0;
+            }
+            100% {
+                opacity: 1;
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            header {
+                padding: 15px 20px;
+                gap: 15px;
+            }
+
+            .search-container {
+                max-width: 90%;
+            }
+
+            .buttons-container {
+                flex-direction: column;
+                width: 100%;
+                max-width: 600px;
+                margin-left: auto;
+                margin-right: auto;
+            }
+
+            .btn {
+                width: 100%;
+            }
+
+            #p5-container {
+                margin-bottom: 30px;
+            }
+
+            #sphere-container {
+                bottom: 10px;
+                right: 10px;
+            }
+
+            .sphere-credit {
+                bottom: 15px;
+                right: 70px;
+                font-size: 9px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Digital Rain Background -->
+    <div class="digital-rain" id="digitalRain"></div>
+
+    <!-- 3D Sphere Container -->
+    <div id="sphere-container"></div>
+    <div class="sphere-credit">BY ARYAN SARRAF</div>
+
+    <!-- Header -->
+    <header>
+        <a href="#images">Images</a>
+        <a href="#mail">Mail</a>
+        <div class="profile-icon" title="Profile">👤</div>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        <!-- p5.js Canvas for Animated Logo -->
+        <div id="p5-container"></div>
+
+        <!-- Search Container -->
+        <div class="search-container">
+            <div class="search-bar">
+                <i class="fas fa-search search-icon"></i>
+                <input 
+                    type="text" 
+                    class="search-input" 
+                    id="searchInput" 
+                    placeholder="Search the Matrix..."
+                    autocomplete="off"
+                >
+                <i class="fas fa-microphone microphone-icon"></i>
+            </div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="buttons-container">
+            <button class="btn" id="searchBtn">Matrix Search</button>
+            <button class="btn" id="luckyBtn">I'm Feeling Lucky</button>
+        </div>
+    </main>
+
+    <!-- Loading Screen -->
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loading-numbers" id="loadingNumber">1</div>
+        <div class="loading-text">FEELING LUCKY...</div>
+    </div>
+
+    <!-- Genie -->
+    <div class="genie" id="genie">
+        <div class="genie-text">AS YOU WISH</div>
+        <div class="genie-body">
+            <div class="genie-eyes">
+                <div class="genie-eye"><div class="genie-pupil"></div></div>
+                <div class="genie-eye"><div class="genie-pupil"></div></div>
+            </div>
+            <div class="genie-mouth"></div>
+        </div>
+    </div>
+
+    <!-- Terminal -->
+    <div class="terminal" id="terminal">
+        <div class="terminal-content" id="terminalContent"></div>
+    </div>
+
+    <script>
+        // Digital Rain Effect
+        class DigitalRain {
+            constructor() {
+                this.chars = [];
+                this.isActive = false;
+            }
+
+            activate() {
+                if (this.isActive) return;
+                this.isActive = true;
+                const container = document.getElementById('digitalRain');
+                container.classList.add('active');
+
+                // Create falling characters
+                for (let i = 0; i < 50; i++) {
+                    this.createRainChar(container);
+                }
+            }
+
+            deactivate() {
+                this.isActive = false;
+                const container = document.getElementById('digitalRain');
+                container.classList.remove('active');
+            }
+
+            createRainChar(container) {
+                const char = document.createElement('div');
+                char.className = 'rain-char';
+                char.textContent = Math.random() > 0.5 ? '0' : '1';
+                char.style.left = Math.random() * 100 + '%';
+                char.style.top = Math.random() * -100 + '%';
+                char.style.color = colorThemes[currentTheme].primary;
+                char.style.opacity = '1';
+                char.style.textShadow = `0 0 5px ${colorThemes[currentTheme].primary}, 0 0 10px ${colorThemes[currentTheme].primary}, 0 0 20px ${colorThemes[currentTheme].primary}, 0 0 30px ${colorThemes[currentTheme].primary}, 0 0 40px ${colorThemes[currentTheme].primary}`;
+                const duration = 5 + Math.random() * 5;
+                char.style.animationDuration = duration + 's';
+                container.appendChild(char);
+
+                setTimeout(() => char.remove(), duration * 1000);
+            }
+        }
+
+        const rain = new DigitalRain();
+
+        // Helper function to convert hex to rgba
+        function hexToRgba(hex, alpha) {
+            const rgb = hexToRgb(hex);
+            return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${alpha})`;
+        }
+
+        // Search Input Handler
+        const searchInput = document.getElementById('searchInput');
+        let rainTimeout;
+
+        searchInput.addEventListener('input', () => {
+            rain.activate();
+            clearTimeout(rainTimeout);
+            rainTimeout = setTimeout(() => rain.deactivate(), 2000);
+        });
+
+        // Search Button Handlers
+        document.getElementById('searchBtn').addEventListener('click', () => {
+            if (searchInput.value.trim()) {
+                window.location.href = `https://www.google.com/search?q=${encodeURIComponent(searchInput.value)}`;
+            } else {
+                // Empty search - trigger terminal
+                showTerminal();
+            }
+        });
+
+        document.getElementById('luckyBtn').addEventListener('click', () => {
+            if (searchInput.value.trim()) {
+                showLoadingSequence();
+            } else {
+                // Empty search - show unlucky sequence
+                showUnluckySequence();
+            }
+        });
+
+        // Show unlucky error sequence
+        function showUnluckySequence() {
+            const loadingScreen = document.getElementById('loadingScreen');
+            const loadingNumber = document.getElementById('loadingNumber');
+            const loadingText = document.querySelector('.loading-text');
+            
+            // Set colors to current theme
+            loadingNumber.style.color = colorThemes[currentTheme].primary;
+            loadingNumber.style.textShadow = `0 0 20px ${colorThemes[currentTheme].primary}`;
+            loadingText.style.color = colorThemes[currentTheme].primary;
+            
+            loadingScreen.classList.add('active');
+            
+            // Show glitchy countdown
+            let count = 1;
+            const frequencies = [1200, 1400, 1600, 1800];
+            
+            for (let i = 1; i <= 4; i++) {
+                setTimeout(() => {
+                    loadingNumber.textContent = i + '...';
+                    loadingNumber.classList.add('glitchy');
+                    
+                    // Play high-tech beep
+                    playBeep(frequencies[i - 1], 150);
+                    
+                    // Remove glitch class after animation
+                    setTimeout(() => {
+                        loadingNumber.classList.remove('glitchy');
+                    }, 100);
+                }, (i - 1) * 1000);
+            }
+            
+            // After 4 seconds, show error with sad swoosh
+            setTimeout(() => {
+                playSadSwoosh();
+                
+                setTimeout(() => {
+                    loadingNumber.textContent = 'error';
+                    loadingNumber.style.fontSize = '100px';
+                    loadingNumber.style.color = colorThemes[currentTheme].primary;
+                    loadingNumber.style.textShadow = `0 0 20px ${colorThemes[currentTheme].primary}, 0 0 10px ${colorThemes[currentTheme].secondary}`;
+                    loadingText.textContent = '(you_are_unlucky)';
+                    loadingText.style.color = colorThemes[currentTheme].primary;
+                    loadingText.style.fontSize = '14px';
+                    loadingText.style.opacity = '1';
+                    loadingText.style.letterSpacing = '1px';
+                    
+                    // Add blinking animation to error text
+                    loadingNumber.style.animation = 'errorBlink 0.5s infinite';
+                    
+                    // Hide after delay
+                    setTimeout(() => {
+                        loadingScreen.classList.remove('active');
+                        // Reset styles
+                        loadingNumber.style.fontSize = '80px';
+                        loadingNumber.style.animation = 'none';
+                        loadingText.textContent = 'FEELING LUCKY...';
+                        loadingText.style.opacity = '0.7';
+                    }, 3000);
+                }, 800);
+            }, 4000);
+        }
+
+        // Happy swoosh sound - ascending pitch
+        function playHappySwoosh() {
+            try {
+                const ctx = getAudioContext();
+                
+                if (ctx.state === 'suspended') {
+                    ctx.resume();
+                }
+                
+                const now = ctx.currentTime;
+                const duration = 0.5; // 500ms
+                
+                const oscillator = ctx.createOscillator();
+                const gainNode = ctx.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(ctx.destination);
+                
+                // Happy ascending pitch
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(200, now);
+                oscillator.frequency.exponentialRampToValueAtTime(800, now + duration);
+                
+                // Envelope - start soft, fade out
+                gainNode.gain.setValueAtTime(0.3, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, now + duration);
+                
+                oscillator.start(now);
+                oscillator.stop(now + duration);
+            } catch (e) {
+                console.log('Audio happy swoosh failed:', e);
+            }
+        }
+
+        // Sad swoosh sound - descending pitch
+        function playSadSwoosh() {
+            try {
+                const ctx = getAudioContext();
+                
+                if (ctx.state === 'suspended') {
+                    ctx.resume();
+                }
+                
+                const now = ctx.currentTime;
+                const duration = 0.6; // 600ms
+                
+                const oscillator = ctx.createOscillator();
+                const gainNode = ctx.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(ctx.destination);
+                
+                // Sad descending pitch
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(600, now);
+                oscillator.frequency.exponentialRampToValueAtTime(80, now + duration);
+                
+                // Envelope - start medium, fade out
+                gainNode.gain.setValueAtTime(0.3, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, now + duration);
+                
+                oscillator.start(now);
+                oscillator.stop(now + duration);
+            } catch (e) {
+                console.log('Audio sad swoosh failed:', e);
+            }
+        }
+
+        // Loading and Confetti Functions
+        function showLoadingSequence() {
+            const loadingScreen = document.getElementById('loadingScreen');
+            const loadingNumber = document.getElementById('loadingNumber');
+            const loadingText = document.querySelector('.loading-text');
+            
+            // Set colors to current theme
+            loadingNumber.style.color = colorThemes[currentTheme].primary;
+            loadingNumber.style.textShadow = `0 0 20px ${colorThemes[currentTheme].primary}`;
+            loadingText.style.color = colorThemes[currentTheme].primary;
+            
+            loadingScreen.classList.add('active');
+            
+            // Display 1... 2... 3... 4... with 1 second intervals
+            const frequencies = [1200, 1400, 1600, 1800];
+            
+            for (let count = 1; count <= 4; count++) {
+                setTimeout(() => {
+                    loadingNumber.textContent = count + '...';
+                    loadingNumber.classList.add('glitchy');
+                    
+                    // Play high-tech beep
+                    playBeep(frequencies[count - 1], 150);
+                    
+                    // Remove glitch class after animation
+                    setTimeout(() => {
+                        loadingNumber.classList.remove('glitchy');
+                    }, 100);
+                }, (count - 1) * 1000);
+            }
+            
+            // After 4 seconds, trigger confetti and show YAY
+            setTimeout(() => {
+                triggerCanvasConfetti();
+                
+                setTimeout(() => {
+                    playHappySwoosh();
+                    
+                    loadingNumber.textContent = 'YAY!';
+                    loadingNumber.style.fontSize = '120px';
+                    loadingText.textContent = '✨ LUCKY PICK ✨';
+                    loadingText.style.opacity = '1';
+                    
+                    // Hide after delay
+                    setTimeout(() => {
+                        loadingScreen.classList.remove('active');
+                        // Reset styles
+                        loadingNumber.style.fontSize = '80px';
+                        loadingText.textContent = 'FEELING LUCKY...';
+                        loadingText.style.opacity = '0.7';
+                    }, 2000);
+                }, 800);
+            }, 4000);
+        }
+
+        // Canvas Confetti - Massive confetti pop with theme colors
+        function triggerCanvasConfetti() {
+            // Play burst sound effect
+            playBurstSound();
+            
+            const themeColor = colorThemes[currentTheme].primary;
+            const secondaryColor = colorThemes[currentTheme].secondary;
+            
+            // Convert hex to RGB for canvas-confetti
+            const rgb1 = hexToRgb(themeColor);
+            const rgb2 = hexToRgb(secondaryColor);
+            
+            // Massive confetti burst
+            confetti({
+                particleCount: 200,
+                spread: 360,
+                startVelocity: 45,
+                gravity: 0.8,
+                decay: 0.95,
+                colors: [themeColor, secondaryColor],
+                origin: { x: 0.5, y: 0.5 }
+            });
+            
+            // Secondary burst for extra intensity
+            setTimeout(() => {
+                confetti({
+                    particleCount: 150,
+                    spread: 270,
+                    startVelocity: 35,
+                    gravity: 0.7,
+                    colors: [themeColor, secondaryColor],
+                    origin: { x: 0.5, y: 0.5 }
+                });
+            }, 200);
+        }
+
+        // Create a single persistent audio context for smooth beep generation
+        let audioContext = null;
+        
+        function getAudioContext() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            return audioContext;
+        }
+
+        // Web Audio API - Play digital beep with OscillatorNode
+        function playBeep(frequency = 800, duration = 100) {
+            try {
+                const ctx = getAudioContext();
+                
+                // Resume audio context if suspended (required for user interaction)
+                if (ctx.state === 'suspended') {
+                    ctx.resume();
+                }
+                
+                const oscillator = ctx.createOscillator();
+                const gainNode = ctx.createGain();
+                
+                // Connect oscillator to gain to speakers
+                oscillator.connect(gainNode);
+                gainNode.connect(ctx.destination);
+                
+                // Configure oscillator for digital beep sound
+                oscillator.type = 'square'; // Square wave for crisp digital sound
+                oscillator.frequency.value = frequency;
+                
+                // Create sharp attack, quick decay envelope for punchy beep
+                const now = ctx.currentTime;
+                const durationSec = duration / 1000;
+                
+                // Sharp attack (instant to full volume)
+                gainNode.gain.setValueAtTime(0.4, now);
+                
+                // Quick exponential decay
+                gainNode.gain.exponentialRampToValueAtTime(0.01, now + durationSec);
+                
+                // Start and stop the oscillator
+                oscillator.start(now);
+                oscillator.stop(now + durationSec);
+            } catch (e) {
+                console.log('Audio beep failed:', e);
+            }
+        }
+
+        // Web Audio API - Play burst/explosion sound for confetti
+        function playBurstSound() {
+            try {
+                const ctx = getAudioContext();
+                
+                if (ctx.state === 'suspended') {
+                    ctx.resume();
+                }
+                
+                const now = ctx.currentTime;
+                const duration = 0.5; // 500ms burst
+                
+                // Create multiple oscillators for a rich burst effect
+                const osc1 = ctx.createOscillator();
+                const osc2 = ctx.createOscillator();
+                const gainNode = ctx.createGain();
+                
+                osc1.connect(gainNode);
+                osc2.connect(gainNode);
+                gainNode.connect(ctx.destination);
+                
+                // First oscillator - deep low frequency sweep
+                osc1.type = 'sine';
+                osc1.frequency.setValueAtTime(200, now);
+                osc1.frequency.exponentialRampToValueAtTime(50, now + duration);
+                
+                // Second oscillator - higher frequency for percussive punch
+                osc2.type = 'square';
+                osc2.frequency.setValueAtTime(400, now);
+                osc2.frequency.exponentialRampToValueAtTime(100, now + duration);
+                
+                // Envelope - loud attack, quick decay
+                gainNode.gain.setValueAtTime(0, now);
+                gainNode.gain.linearRampToValueAtTime(0.5, now + 0.05); // Quick attack
+                gainNode.gain.exponentialRampToValueAtTime(0.01, now + duration); // Decay
+                
+                // Start and stop
+                osc1.start(now);
+                osc2.start(now);
+                osc1.stop(now + duration);
+                osc2.stop(now + duration);
+            } catch (e) {
+                console.log('Audio burst failed:', e);
+            }
+        }
+
+        function createConfetti() {
+            const themeColors = [
+                colorThemes[currentTheme].primary,
+                colorThemes[currentTheme].secondary,
+                colorThemes[currentTheme].primary,
+                colorThemes[currentTheme].secondary,
+                colorThemes[currentTheme].primary
+            ];
+            const confettiCount = 60;
+            
+            for (let i = 0; i < confettiCount; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                
+                const color = themeColors[Math.floor(Math.random() * themeColors.length)];
+                const size = Math.random() * 10 + 5;
+                const delay = Math.random() * 0.2;
+                const duration = 2 + Math.random() * 1;
+                const xOffset = (Math.random() - 0.5) * 200;
+                
+                confetti.style.left = window.innerWidth / 2 + 'px';
+                confetti.style.top = window.innerHeight / 2 + 'px';
+                confetti.style.width = size + 'px';
+                confetti.style.height = size + 'px';
+                confetti.style.background = color;
+                confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+                confetti.style.boxShadow = `0 0 10px ${color}`;
+                confetti.style.animation = `confettiFall ${duration}s ease-in-out ${delay}s forwards`;
+                
+                document.body.appendChild(confetti);
+                
+                setTimeout(() => confetti.remove(), (duration + delay) * 1000);
+            }
+        }
+
+        // Enter key to search or trigger terminal
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                if (searchInput.value.trim()) {
+                    document.getElementById('searchBtn').click();
+                } else {
+                    // Empty search - trigger terminal
+                    showTerminal();
+                }
+            }
+        });
+
+        // Terminal system
+        function showTerminal() {
+            const terminal = document.getElementById('terminal');
+            const terminalContent = document.getElementById('terminalContent');
+            
+            // Activate terminal (slide up)
+            terminal.classList.add('active');
+            terminalContent.innerHTML = '';
+            
+            // Diagnostic messages
+            const messages = [
+                '> SYSTEM_BOOT.exe',
+                '>_',
+                '> Initializing neural matrix...',
+                '> Scanning network topology...',
+                '> Analyzing data packets: [████████████] 100%',
+                '> Buffer overflow detected in sector 7-G',
+                '> Rerouting through primary grid...',
+                '> WARNING: FIREWALL COMPROMISED',
+                '> Initiating countermeasure protocols...',
+                '> [SUCCESS] System secure.',
+                '> Ready for next command...',
+                '> _'
+            ];
+            
+            // Print messages with typing effect
+            let lineIndex = 0;
+            const printLine = () => {
+                if (lineIndex < messages.length) {
+                    const line = document.createElement('div');
+                    line.className = 'terminal-line';
+                    line.textContent = messages[lineIndex];
+                    terminalContent.appendChild(line);
+                    
+                    // Auto-scroll to bottom
+                    terminal.scrollTop = terminal.scrollHeight;
+                    
+                    lineIndex++;
+                    setTimeout(printLine, 80); // 80ms between lines
+                } else {
+                    // After all messages, wait then close terminal
+                    setTimeout(() => {
+                        terminal.classList.remove('active');
+                        terminalContent.innerHTML = '';
+                    }, 2000);
+                }
+            };
+            
+            printLine();
+        }
+
+        // Helper function to convert hex to RGB
+        function hexToRgb(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? [
+                parseInt(result[1], 16),
+                parseInt(result[2], 16),
+                parseInt(result[3], 16)
+            ] : [255, 255, 255];
+        }
+
+        // Generate background pattern for theme
+        function generateBackgroundPattern(colorHex) {
+            const colorCode = colorHex.substring(1).toLowerCase();
+            return `url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect fill="%23000" width="40" height="40"/><text x="5" y="15" font-size="12" fill="%23${colorCode}" opacity="0.2" font-family="monospace">0</text><text x="20" y="30" font-size="12" fill="%23${colorCode}" opacity="0.2" font-family="monospace">1</text></svg>')`;
+        }
+
+        // Color Theme System
+        const colorThemes = {
+            green: { primary: '#00FF41', secondary: '#00AA22', dark: '#00661a' },
+            red: { primary: '#FF4141', secondary: '#AA0000', dark: '#661a1a' },
+            blue: { primary: '#4141FF', secondary: '#0000AA', dark: '#1a1a66' },
+            yellow: { primary: '#FFFF00', secondary: '#CCCC00', dark: '#666600' }
+        };
+
+        let currentTheme = 'green';
+        const genie = document.getElementById('genie');
+        const genieBody = genie.querySelector('.genie-body');
+
+        // Set initial background
+        document.body.style.backgroundImage = generateBackgroundPattern(colorThemes['green'].primary);
+        
+        // Initialize button hover styles
+        const initialButtonHoverStyle = document.createElement('style');
+        initialButtonHoverStyle.id = 'btn-hover-style';
+        initialButtonHoverStyle.textContent = `.btn:hover { background-color: ${colorThemes['green'].primary} !important; box-shadow: 0 0 20px rgba(0, 255, 65, 0.3) !important; }`;
+        document.head.appendChild(initialButtonHoverStyle);
+
+        // Detect color commands
+        searchInput.addEventListener('blur', () => {
+            const value = searchInput.value.toLowerCase().trim();
+            if (value === 'red_please') {
+                changeTheme('red');
+                searchInput.value = '';
+            } else if (value === 'blue_please') {
+                changeTheme('blue');
+                searchInput.value = '';
+            } else if (value === 'green_please') {
+                changeTheme('green');
+                searchInput.value = '';
+            } else if (value === 'yellow_please') {
+                changeTheme('yellow');
+                searchInput.value = '';
+            }
+        });
+
+        function changeTheme(themeName) {
+            if (currentTheme === themeName) return;
+
+            const oldColors = colorThemes[currentTheme];
+            const newColors = colorThemes[themeName];
+
+            // Show genie
+            genie.classList.remove('corner');
+            genie.classList.add('appearing', 'show-text');
+            genie.style.left = window.innerWidth / 2 - 75 + 'px';
+            genie.style.top = window.innerHeight / 2 - 75 + 'px';
+            genieBody.className = `genie-body ${themeName}-theme`;
+
+            // Change colors and background
+            setTimeout(() => {
+                // Update background pattern
+                document.body.style.backgroundImage = generateBackgroundPattern(newColors.primary);
+                
+                // Update profile icon background color
+                const profileIcon = document.querySelector('.profile-icon');
+                if (profileIcon) {
+                    profileIcon.style.backgroundColor = newColors.primary;
+                }
+                
+                // Update sphere credit color
+                const sphereCredit = document.querySelector('.sphere-credit');
+                if (sphereCredit) {
+                    sphereCredit.style.color = newColors.primary;
+                }
+                
+                // Update search bar background with darker theme color
+                document.querySelectorAll('.search-bar').forEach(el => {
+                    el.style.backgroundColor = hexToRgba(newColors.dark, 0.5);
+                });
+                
+            // Update button background
+                document.querySelectorAll('.btn').forEach(el => {
+                    el.style.backgroundColor = 'transparent';
+                });
+                
+                // Update button hover state by injecting new CSS rules
+                const existingHoverStyle = document.getElementById('btn-hover-style');
+                if (existingHoverStyle) {
+                    existingHoverStyle.remove();
+                }
+                const buttonHoverStyle = document.createElement('style');
+                buttonHoverStyle.id = 'btn-hover-style';
+                buttonHoverStyle.textContent = `.btn:hover { background-color: ${newColors.primary} !important; box-shadow: 0 0 20px ${hexToRgba(newColors.primary, 0.3)} !important; }`;
+                document.head.appendChild(buttonHoverStyle);
+                
+                // Update placeholder text color in search input
+                const placeholderStyle = document.createElement('style');
+                placeholderStyle.textContent = `.search-input::placeholder { color: ${newColors.dark}; }`;
+                document.head.appendChild(placeholderStyle);
+                
+                // Update terminal colors
+                const terminal = document.getElementById('terminal');
+                terminal.style.borderTopColor = newColors.primary;
+                const terminalContent = document.getElementById('terminalContent');
+                terminalContent.style.color = newColors.primary;
+                
+                // Replace all old colors with new colors
+                replaceColors(oldColors.primary, newColors.primary);
+                replaceColors(oldColors.secondary, newColors.secondary);
+                replaceColors(oldColors.dark, newColors.dark);
+                
+                currentTheme = themeName;
+
+                // Shrink genie
+                setTimeout(() => {
+                    genie.classList.remove('appearing', 'show-text');
+                    genie.classList.add('shrinking');
+                    setTimeout(() => {
+                        genie.classList.remove('shrinking');
+                        genie.classList.add('corner');
+                        genie.style.left = 'auto';
+                        genie.style.top = 'auto';
+                    }, 800);
+                }, 500);
+            }, 200);
+        }
+
+        function replaceColors(oldColor, newColor) {
+            const oldRgb = hexToRgb(oldColor);
+            const newRgb = hexToRgb(newColor);
+            
+            const regex = new RegExp(oldColor.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+            const rgbaRegex = new RegExp(`rgba\\(\\s*${oldRgb[0]}\\s*,\\s*${oldRgb[1]}\\s*,\\s*${oldRgb[2]}\\s*,`, 'gi');
+            
+            // Update DOM elements
+            document.querySelectorAll('*').forEach(el => {
+                if (el.style.color && el.style.color.includes(oldColor)) {
+                    el.style.color = newColor;
+                }
+                if (el.style.backgroundColor && el.style.backgroundColor.includes(oldColor)) {
+                    el.style.backgroundColor = newColor;
+                }
+                if (el.style.borderColor && el.style.borderColor.includes(oldColor)) {
+                    el.style.borderColor = newColor;
+                }
+                if (el.style.textShadow) {
+                    el.style.textShadow = el.style.textShadow.replace(regex, newColor);
+                    el.style.textShadow = el.style.textShadow.replace(rgbaRegex, `rgba(${newRgb[0]}, ${newRgb[1]}, ${newRgb[2]},`);
+                }
+                if (el.style.boxShadow) {
+                    el.style.boxShadow = el.style.boxShadow.replace(regex, newColor);
+                    el.style.boxShadow = el.style.boxShadow.replace(rgbaRegex, `rgba(${newRgb[0]}, ${newRgb[1]}, ${newRgb[2]},`);
+                }
+                if (el.style.border) {
+                    el.style.border = el.style.border.replace(regex, newColor);
+                }
+            });
+            
+            // Update header links and search bar directly
+            document.querySelectorAll('header a, header a:hover').forEach(el => {
+                el.style.color = newColor;
+            });
+            
+            document.querySelectorAll('.search-bar, .search-icon, .microphone-icon, .search-input').forEach(el => {
+                el.style.color = newColor;
+                el.style.borderColor = newColor;
+            });
+            
+            document.querySelectorAll('.btn').forEach(el => {
+                el.style.color = newColor;
+                el.style.borderColor = newColor;
+            });
+            
+            // Update digital rain characters
+            document.querySelectorAll('.rain-char').forEach(char => {
+                char.style.color = newColor;
+                char.style.textShadow = `0 0 5px ${newColor}, 0 0 10px ${newColor}, 0 0 20px ${newColor}, 0 0 30px ${newColor}, 0 0 40px ${newColor}`;
+            });
+            
+            updateStyleRules(oldColor, newColor, oldRgb, newRgb);
+        }
+
+        function updateStyleRules(oldColor, newColor, oldRgb, newRgb) {
+            const regex = new RegExp(oldColor.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+            const rgbaRegex = new RegExp(`rgba\\(\\s*${oldRgb[0]}\\s*,\\s*${oldRgb[1]}\\s*,\\s*${oldRgb[2]}\\s*,`, 'gi');
+            
+            for (let sheet of document.styleSheets) {
+                try {
+                    for (let rule of sheet.cssRules) {
+                        if (rule.style && rule.style.cssText) {
+                            let text = rule.style.cssText;
+                            const oldText = text;
+                            
+                            // Replace hex colors
+                            text = text.replace(regex, newColor);
+                            // Replace rgba colors
+                            text = text.replace(rgbaRegex, `rgba(${newRgb[0]}, ${newRgb[1]}, ${newRgb[2]},`);
+                            
+                            // Update if changed
+                            if (text !== oldText) {
+                                rule.style.cssText = text;
+                            }
+                        }
+                        // Also handle ::placeholder pseudo-element rules
+                        if (rule.selectorText && rule.selectorText.includes('::placeholder')) {
+                            if (rule.style && rule.style.cssText) {
+                                let text = rule.style.cssText;
+                                const oldText = text;
+                                text = text.replace(regex, newColor);
+                                if (text !== oldText) {
+                                    rule.style.cssText = text;
+                                }
+                            }
+                        }
+                    }
+                } catch (e) {}
+            }
+        }
+
+        // p5.js Sketch
+        let sketch = (p) => {
+            const NUM_DIGITS = 12;
+            const RING_RADIUS = 80;
+            const DIGIT_SIZE = 16;
+            const ORBIT_SPEED = 0.005;
+            const ROTATE_SPEED = 0.04;
+            const TWO_PI = Math.PI * 2;
+
+            let digits = [];
+            let mouseOverCanvas = false;
+            let hoverExpansion = 0;
+            let targetExpansion = 0;
+            let setupDone = false;
+
+            class Digit {
+                constructor(index) {
+                    this.index = index;
+                    this.angle = (index / NUM_DIGITS) * TWO_PI;
+                    this.character = index % 2 === 0 ? '0' : '1';
+                    this.rotation = 0;
+                    this.attractionForce = 0; // Mouse attraction factor
+                    this.targetRadius = RING_RADIUS;
+                    this.offsetX = 0; // Direct cursor attraction offset
+                    this.offsetY = 0; // Direct cursor attraction offset
+                }
+
+                update() {
+                    this.angle += ORBIT_SPEED;
+                    // Rotate toward center (local rotation)
+                    this.rotation += ROTATE_SPEED + this.angle * 0.02;
+                    // Ease attraction force toward target
+                    this.attractionForce += (0 - this.attractionForce) * 0.15;
+                    this.targetRadius += (RING_RADIUS - this.targetRadius) * 0.1;
+                }
+
+                applyMouseAttraction(mouseX, mouseY, centerX, centerY) {
+                    // Calculate distance from this digit to mouse
+                    const digitPos = this.getPosition(centerX, centerY, this.attractionForce);
+                    const dx = mouseX - digitPos.x;
+                    const dy = mouseY - digitPos.y;
+                    const distToMouse = Math.sqrt(dx * dx + dy * dy);
+                    
+                    // If mouse is close, apply strong attraction
+                    if (distToMouse < 200) {
+                        this.attractionForce = Math.max(0, 1 - (distToMouse / 200)); // Stronger attraction closer to mouse
+                        // Pull toward mouse more aggressively
+                        this.targetRadius = RING_RADIUS * (1 - this.attractionForce * 0.8);
+                        // Direct cursor attraction - pull digit toward cursor
+                        this.offsetX += (dx * this.attractionForce * 0.1 - this.offsetX) * 0.2;
+                        this.offsetY += (dy * this.attractionForce * 0.1 - this.offsetY) * 0.2;
+                    } else {
+                        this.attractionForce = 0;
+                        this.targetRadius = RING_RADIUS;
+                        this.offsetX += (0 - this.offsetX) * 0.15;
+                        this.offsetY += (0 - this.offsetY) * 0.15;
+                    }
+                }
+
+                getPosition(centerX, centerY, expansion = 0) {
+                    const radiusMultiplier = 1 + expansion * 0.5;
+                    const orbitX = centerX + p.cos(this.angle) * RING_RADIUS * radiusMultiplier;
+                    const orbitY = centerY + p.sin(this.angle) * RING_RADIUS * radiusMultiplier;
+                    return { x: orbitX, y: orbitY };
+                }
+
+                display(centerX, centerY, expansion) {
+                    const pos = this.getPosition(centerX, centerY, expansion);
+
+                    p.push();
+                    p.translate(pos.x + this.offsetX, pos.y + this.offsetY);
+                    p.rotate(this.rotation);
+
+                    // Add scale and glow effect on hover
+                    const scale = 1 + expansion * 0.3;
+                    p.scale(scale);
+                    
+                    p.fill(colorThemes[currentTheme].primary);
+                    if (expansion > 0.3) {
+                        // Glowing effect on hover
+                        p.textSize(DIGIT_SIZE + expansion * 4);
+                        p.stroke(colorThemes[currentTheme].secondary);
+                        p.strokeWeight(1);
+                    } else {
+                        p.noStroke();
+                    }
+                    p.textAlign(p.CENTER, p.CENTER);
+                    p.textSize(DIGIT_SIZE);
+                    p.textFont('Courier New');
+                    p.text(this.character, 0, 0);
+
+                    p.pop();
+                }
+            }
+
+            p.setup = function() {
+                if (setupDone) return; // Only initialize once
+                setupDone = true;
+
+                const container = document.getElementById('p5-container');
+                const size = Math.min(300, window.innerWidth * 0.8);
+                const canvas = p.createCanvas(size, size);
+                canvas.parent('p5-container');
+
+                digits = []; // Ensure array is empty
+                for (let i = 0; i < NUM_DIGITS; i++) {
+                    digits.push(new Digit(i));
+                }
+            };
+
+            p.draw = function() {
+                p.clear();
+
+                // Prevent digit array from growing beyond NUM_DIGITS
+                if (digits.length > NUM_DIGITS) {
+                    digits = digits.slice(0, NUM_DIGITS);
+                }
+                hoverExpansion += (targetExpansion - hoverExpansion) * 0.1;
+
+                const centerX = p.width / 2;
+                const centerY = p.height / 2;
+
+                // Update and display digits
+                for (let digit of digits) {
+                    digit.update();
+                    // Apply mouse attraction if cursor is over canvas
+                    if (mouseOverCanvas) {
+                        digit.applyMouseAttraction(p.mouseX, p.mouseY, centerX, centerY);
+                    }
+                    digit.display(centerX, centerY, hoverExpansion);
+                }
+
+                // Draw center point
+                p.fill(colorThemes[currentTheme].primary);
+                p.noStroke();
+                p.ellipse(centerX, centerY, 3, 3);
+            };
+
+            p.mouseMoved = function() {
+                if (p && p.mouseX !== undefined && p.mouseY !== undefined) {
+                    const dist = p.dist(p.mouseX, p.mouseY, p.width / 2, p.height / 2);
+                    mouseOverCanvas = dist < p.width / 2 + 50;
+                    targetExpansion = mouseOverCanvas ? 1 : 0;
+                }
+                return false;
+            };
+
+            p.mouseLeft = function() {
+                mouseOverCanvas = false;
+                targetExpansion = 0;
+            };
+
+            p.windowResized = function() {
+                if (p && p.width && document.getElementById('p5-container')) {
+                    const container = document.getElementById('p5-container');
+                    const size = Math.min(300, window.innerWidth * 0.8);
+                    p.resizeCanvas(size, size);
+                }
+            };
+        };
+
+        // Create p5 instance
+        new p5(sketch);
+
+        // 3D Sphere Sketch
+        let sphereSketch = (p) => {
+            let rotationX = 0;
+            let rotationY = 0;
+            let targetRotX = 0;
+            let targetRotY = 0;
+            let mouseOverSphere = false;
+
+            p.setup = function() {
+                const container = document.getElementById('sphere-container');
+                const size = 80;
+                const canvas = p.createCanvas(size, size, p.WEBGL);
+                canvas.parent('sphere-container');
+            };
+
+            p.draw = function() {
+                // Dark background
+                p.background(0);
+
+                // Check if mouse is over sphere
+                const distToCenter = p.dist(p.mouseX, p.mouseY, p.width / 2, p.height / 2);
+                mouseOverSphere = distToCenter < p.width / 2;
+
+                // Update target rotation based on mouse position
+                if (mouseOverSphere) {
+                    targetRotY += (p.mouseX - p.pmouseX) * 0.02;
+                    targetRotX += (p.mouseY - p.pmouseY) * 0.02;
+                }
+
+                // Smooth easing to target rotation
+                rotationX += (targetRotX - rotationX) * 0.1;
+                rotationY += (targetRotY - rotationY) * 0.1;
+
+                // Slow continuous rotation when not hovering
+                if (!mouseOverSphere) {
+                    rotationY += 0.003;
+                    targetRotX *= 0.98;
+                    targetRotY *= 0.98;
+                }
+
+                // Get current theme colors
+                const themeColor = hexToRgb(colorThemes[currentTheme].primary);
+                const secondaryColor = hexToRgb(colorThemes[currentTheme].secondary);
+
+                // Lighting with theme colors
+                p.lights();
+                p.ambientLight(themeColor[0], themeColor[1], themeColor[2], 0.4);
+                p.directionalLight(themeColor[0], themeColor[1], themeColor[2], 0, 0, -1);
+                p.pointLight(secondaryColor[0], secondaryColor[1], secondaryColor[2], 30, -30, 30);
+
+                // Apply rotation
+                p.rotateX(rotationX);
+                p.rotateY(rotationY);
+
+                // Draw sphere with theme colors
+                p.fill(themeColor[0], themeColor[1], themeColor[2]);
+                p.stroke(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+                p.strokeWeight(0.5);
+                p.sphere(30);
+            };
+
+            p.mouseMoved = function() {
+                return false;
+            };
+
+            p.windowResized = function() {
+                if (p && p.width && document.getElementById('sphere-container')) {
+                    const size = 80;
+                    p.resizeCanvas(size, size);
+                }
+            };
+        };
+
+        // Create 3D sphere instance
+        new p5(sphereSketch);
+    </script>
+</body>
+</html>
